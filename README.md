@@ -6,3 +6,12 @@ Triggers.html =  must be includes in a  iframe otherwise will cause sound issue 
 
 Just  open Sounds.html and it should work. 
 
+In  Sounds.html must include  the  following after the  Sounds.html?
+
+**Must  include the following variables.**
+
+TwitchId = your  twitch username 
+
+YnId =  your younow.com id 
+
+kick =
