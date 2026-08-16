@@ -1,0 +1,410 @@
+<html>
+<head>
+<script src="https://cdn.jsdelivr.net/npm/comfy.js@latest/dist/comfy.min.js"></script>
+
+<title></title>
+	<script>
+<!--
+	
+	const queryString = window.location.search;
+	const urlParams = new URLSearchParams(queryString); 
+	var twitchUser=urlParams.get("TwitchId")??"RoxxieToxxic";
+	var tsoh =  urlParams.get("streamer")??"RoxxieToxxic";
+	var ynid=urlParams.get("YnId")??"51919855";
+
+
+	//-->
+	</script>
+	
+</head>
+
+
+<body>
+<audio id="myAudioElement"></audio>
+
+<script>
+let isPlaying = false;
+const listoftrigger = ["levelup","hello"];
+const soundslist=["MARIOPOWERUP-SOUNDEFFECT.mp3","3.mp3"]
+const audioElement = document.getElementById("myAudioElement");
+var trigger_list=[] ;
+var lastplayed; 
+var OnOrOff=false; 
+
+const wait = (ms) => new Promise(resolve => setTimeout(resolve, ms));
+
+async function loadtriggers(){
+ try {
+    const response = await fetch('https://roxxieverse.com/test/triggers.json');
+    
+    // Check if the request was successful
+    if (!response.ok) {
+      throw new Error(`HTTP error! status: ${response.status}`);
+    }
+    
+    trigger_list = await response.json(); // Parse JSON body
+  //  console.log(trigger_list);
+  } catch (error) {
+    console.error('There was an error:', error);
+  }
+}
+loadtriggers();
+
+
+const playlist = [];
+let currentIndex = 0;
+const delayTime = 10000; // 3 seconds in milliseconds
+const AUDIO_DELAY = 3000;
+const audioPlayer = new Audio();
+var url = "https://roxxieverse.com/test/sounds2/";
+
+async function playNext() {
+
+if(isPlaying)return; 
+isPlaying=true;
+
+audioElement.volume =.9;
+	while(playlist.length>0){
+	
+	
+	
+	const sound=playlist.shift();
+	//console.log(sound);
+	var filename="!"+sound+".mp3";
+	audioElement.src = url+filename;
+	console.log("Currently playing " + url+sound); 
+	
+	console.log("Volume is set to="+audioElement.volume);
+		try{
+		
+		
+		
+		await audioElement.play();
+		
+		    await new Promise(resolve => {
+                audioElement.onended = resolve;
+            });
+
+            // Optional delay between sounds
+            await new Promise(resolve =>
+                setTimeout(resolve, delayTime)
+            );
+		
+		 await delay(AUDIO_DELAY);
+		}
+		catch (err) {
+            console.error("Playback error:", err);
+        }
+		
+	}
+
+    isPlaying = false;
+  
+  
+}
+
+// Event listener to trigger delay after each track
+audioElement.addEventListener('ended', () => {
+ // console.log(`Track ended. Waiting ${delayTime / 1000} seconds...`);
+  setTimeout(playNext, delayTime);
+});
+
+function delay(ms) {
+    return new Promise(resolve => setTimeout(resolve, ms));
+}
+
+ynchatStart(ynid)
+function ynchatStart(ynid2){
+console.log("YN part");
+
+    const socket = new WebSocket('wss://younow-ws.zerody.one/?channelId='+ynid2);
+
+
+    socket.onopen = (e) => {
+      console.log("[open] Connection established");
+    };
+
+    // 3. Event: Message received from server
+	socket.onmessage = (event) => {
+
+		const userObject = JSON.parse(event.data);
+		const Onstuff = userObject.event;
+
+
+			switch(Onstuff){
+							
+							case "onChat":
+								handleChat(userObject)				
+
+							//	console.log(userObject);
+								
+							break;
+							
+							case "onSticker":
+							break;
+							
+							case "onSub":
+						//	console.log(userObject.data);
+							
+			
+							break;
+							case "onResub":
+							
+							break;
+							
+							case "onGift":
+							
+							//handleGifts(userObject);
+							break;
+							
+							default:
+							
+							}
+							
+    };
+}
+
+function addtriggertolist(usrname,trigger){
+	trigger=trigger.toUpperCase()||""
+		if(trigger==="ONOROFF"){
+			
+			OnOrOff=true; 
+			console.log(" " + OnOrOff);
+
+	}
+	
+	if(OnOrOff!=true){
+		var temp = trigger.toUpperCase();
+		var foundIndex=trigger_list.findIndex(trigger_list => trigger_list.trigger === temp);
+	//	console.log(foundIndex);
+		
+
+		if((foundIndex>-1)&&(lastplayed!=temp)){
+
+		playlist.push(trigger_list[foundIndex].trigger);
+		lastplayed= trigger_list[foundIndex].trigger; 
+		
+		playNext();
+		
+		
+		}
+		else{
+			if(temp==='RELOAD')
+			{
+			//console.log("Reloading");
+			window.location.reload();
+			}
+			
+		//console.log( temp+"Not found"); 
+		}
+	}	
+}
+function handleChat(userObject){
+
+//	console.log(userObject.data);
+	
+	var isMod=userObject.data.comments[0].broadcasterMod
+	var usrname=userObject.data.comments[0].name;
+	var tmstamp=timeConverter(userObject.data.comments[0].timestamp);
+	var message2= userObject.data.comments[0].comment;
+	var message= message2.split("!");;
+	var extra=userObject.data.comments[0].subscriptionData ?? "Empty";
+	
+	if(extra !="Empty"){
+	//console.log(extra.badgeAssetSku);
+	if(usrname!="Chat_Bot"){
+	if(message2.indexOf("!")===0){
+	//console.log(message)
+	addtriggertolist(usrname,message[1]);
+	}
+	}
+	
+	}
+	
+	
+}
+
+function main(chatroomID) {
+console.log("With in main Kick");
+
+    const chat = new WebSocket('wss://ws-us2.pusher.com/app/32cbd69e4b950bf97679?protocol=7&client=js&version=8.4.0-rc2&flash=false');
+	
+
+	
+    chat.onerror = (error) => {
+        console.log("Error: " + error);
+    };
+
+    chat.onopen = () => {
+        console.log("Connected to Pusher");
+   
+        setTimeout(() => {
+           // document.getElementById("loading").style.display = "none";
+        }, 1000);
+        chat.send(
+            JSON.stringify({
+                event: 'pusher:subscribe',
+                data: {
+                    auth: "",
+                    channel: `chatrooms.${chatroomID}.v2`
+                },
+            })
+        );
+        chat.send(
+            JSON.stringify({
+                event: 'pusher:subscribe',
+                data: {
+                    auth: "",
+                    channel: `channel.${chatroomID + 2}`
+                },
+            })
+        )
+    };
+	
+    chat.onmessage = (event) => {
+		//console.log(event);
+		//console.log(event.data);
+dealwithmsg(event.data);		
+// parseMessage(event.data);
+ 
+    };
+
+    // Ping every 1 minute to keep the connection alive
+    setInterval(() => {
+        chat.send(JSON.stringify({
+            event: 'pusher:ping',
+            data: {}
+        }));
+    }, 60000);
+}
+
+//userData.subscriber_badges
+function dealwithmsg(rawdata){
+	msg=JSON.parse(rawdata);
+	
+	const data = JSON.parse(
+        msg.data.replace(/\\u00a0/g, " ")
+            .replace(/\\n/g, " ")
+            .replace(/\\t/g, " ")
+            .replace(/\\r/g, " ")
+            .replace(/\\f/g, " ")
+            .replace(/\\b/g, " ")
+            .replace(/\\v/g, " ")
+            .replace(/\\\\/g, "\\")
+    );
+	//console.log(data.sender);
+	
+
+	if (msg.event == "App\\Events\\ChatMessageEvent") {
+      //  handleMessage(data);
+	  
+	 	let msgID = data.id;
+    let msgContent = data.content;
+    let msgSender = data.sender.username;
+    let msgTimestamp = data.created_at;
+		
+		
+var len =data.sender.identity.badges.length;
+	  if(len>-1){
+			var sub= checksubs(data.sender.identity.badges);
+		  if(sub !=false)
+		  {
+			  //add sounds 
+			  //console.log("Is a subscriber");
+			 if(msgContent.indexOf("!")===0);
+			 {
+			
+			if(msgContent.includes("!")!=false)
+			{
+			var temp=msgContent.split("!");
+			//console.log(temp);
+			addtriggertolist(msgSender,temp[1])	
+			
+			}
+			// 
+				 
+			 }
+			  //indexOf("!")===0
+			  
+		  }
+	  }
+    }
+	
+}
+
+function checksubs(data){
+	var x=0;
+	   var isSub=false;
+	while(x !=data.length){
+		//console.log(data[x].type);
+		if(data[x].type !="subscriber"){}
+		else{
+			
+		isSub=true;
+			break;
+			
+		}
+		x++;
+		
+	}
+	return isSub;
+	
+}
+
+
+function timeConverter(UNIX_timestamp){
+  var a = new Date(UNIX_timestamp * 1000);
+  var months = ['Jan','Feb','Mar','Apr','May','Jun','Jul','Aug','Sep','Oct','Nov','Dec'];
+  var year = a.getFullYear();
+  var month = months[a.getMonth()];
+  var date = a.getDate();
+  var hour = a.getHours();
+  var min = a.getMinutes();
+  var sec = a.getSeconds();
+  if(sec <10 ){
+	sec ="0"+sec
+
+  }
+  if(hour <10) {
+	hour = "0" + hour;
+
+  }
+  if(min <10){
+	min = "0" + min
+
+  }
+  var time =   hour + ':' + min ;
+  return time;
+}
+function beginFun(TwitchChannel){
+console.log("Currently working on " + TwitchChannel);
+
+	ComfyJS.onCommand = (user, command, message, flags, extra) => {
+	
+	
+	
+	if(flags.subscriber){
+	
+		addtriggertolist(user,command);
+		//playNext();
+	
+  } 
+  
+	}
+ComfyJS.onChat = ( user, message, flags, self, extra ) => {
+ //console.log( extra);
+ 
+}
+
+        ComfyJS.Init(TwitchChannel);
+  
+}
+	main(460187);
+beginFun(twitchUser)
+wait(8000).then(()=>{});
+
+
+</script>
+
+</body>
+</html>
